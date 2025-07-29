@@ -1,609 +1,1012 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discover Telos - Memory Game</title>
+    <title>Inversiones Boheme - Sistema de Inventario</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Importar jsPDF correctamente -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Orbitron:wght@400;600;800&display=swap');
-        
-        :root {
-            --telos-blue: #571AFF;
-            --telos-dark: #121212;
-            --telos-gold: #ffd700;
-        }
-        
         body {
-            font-family: 'Montserrat', sans-serif;
-            background: linear-gradient(135deg, var(--telos-dark) 0%, #1a1a3a 100%);
-            min-height: 100vh;
-            color: white;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
         }
-        
-        h1, h2, h3 {
-            font-family: 'Orbitron', sans-serif;
-        }
-        
-        .card {
-            perspective: 1000px;
-            transition: transform 0.2s;
-        }
-        
-        .card:hover {
-            transform: scale(1.03);
-        }
-        
-        .card-inner {
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
-        }
-        
-        .card.flipped .card-inner {
-            transform: rotateY(180deg);
-        }
-        
-        .card-front, .card-back {
-            backface-visibility: hidden;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        
-        .card-front {
-            background: linear-gradient(45deg, var(--telos-blue), #7248ff);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .card-back {
-            transform: rotateY(180deg);
-            background: white;
-            color: var(--telos-dark);
-            border: 2px solid var(--telos-gold);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 10px;
-        }
-        
         .modal {
-            background-color: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
+            transition: opacity 0.3s ease;
         }
-        
-        .modal-content {
-            background: linear-gradient(135deg, #1a1a3a 0%, var(--telos-dark) 100%);
-            border: 2px solid var(--telos-gold);
+        .btn-primary {
+            background-color: #6366f1;
+            transition: all 0.3s ease;
         }
-        
-        .btn {
-            transition: all 0.3s;
+        .btn-primary:hover {
+            background-color: #4f46e5;
         }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(87, 26, 255, 0.5);
+        .btn-secondary {
+            background-color: #f43f5e;
+            transition: all 0.3s ease;
         }
-        
-        .telos-logo {
-            filter: drop-shadow(0 0 8px rgba(87, 26, 255, 0.6));
+        .btn-secondary:hover {
+            background-color: #e11d48;
         }
-        
-        .glow {
-            animation: glow 2s infinite alternate;
+        .btn-success {
+            background-color: #10b981;
+            transition: all 0.3s ease;
         }
-        
-        @keyframes glow {
-            from {
-                box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-            }
-            to {
-                box-shadow: 0 0 20px rgba(255, 215, 0, 0.9);
-            }
+        .btn-success:hover {
+            background-color: #059669;
         }
-        
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: var(--telos-gold);
-            opacity: 0;
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
-        .card-icon {
-            width: 40px;
-            height: 40px;
-            margin-bottom: 8px;
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .logo {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
     </style>
 </head>
-<body class="p-4">
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <header class="text-center mb-6">
-            <div class="flex justify-center mb-4">
-                <img src="https://www.telos.net/hubfs/Telos%20Logo%20-%20Purple%20(1).svg" alt="Telos Logo" class="h-20">
-            </div>
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">Discover <span class="text-[#571AFF]">Telos</span></h1>
-            <p class="text-lg text-gray-300 max-w-2xl mx-auto">Match the cards to discover key concepts of the Telos blockchain. Learn while you play!</p>
-        </header>
-        
-        <!-- Game Stats -->
-        <div class="flex flex-wrap justify-between items-center mb-6 px-4">
-            <div class="flex items-center space-x-4 mb-4 md:mb-0">
-                <div class="bg-[#1a1a3a] p-3 rounded-lg border border-[#ffd700]">
-                    <span class="text-gray-300">Attempts: </span>
-                    <span id="attempts" class="text-white font-bold">0</span>
-                </div>
-                <div class="bg-[#1a1a3a] p-3 rounded-lg border border-[#ffd700]">
-                    <span class="text-gray-300">Pairs: </span>
-                    <span id="matches" class="text-white font-bold">0</span>/<span id="total-pairs" class="text-white">12</span>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <!-- Navbar -->
+        <nav class="bg-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 flex items-center">
+                            <h1 class="text-2xl font-bold logo">Inversiones Boheme</h1>
+                        </div>
+                        <div class="ml-2 text-sm text-gray-500">Variedades, Víveres y Papelería</div>
+                    </div>
+                    <div class="flex items-center">
+                        <span id="current-date" class="text-gray-600 mr-4"></span>
+                        <button id="btn-nueva-venta" class="btn-primary text-white px-4 py-2 rounded-md">
+                            Nueva Venta
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div>
-                <button id="restart-btn" class="btn bg-[#571AFF] hover:bg-[#4515cc] text-white font-bold py-2 px-6 rounded-full border-2 border-[#ffd700]">
-                    Restart Game
-                </button>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-grow container mx-auto px-4 py-8">
+            <!-- Dashboard Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="card bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
+                    <h2 class="text-lg font-semibold text-gray-700">Total Productos</h2>
+                    <p id="total-productos" class="text-3xl font-bold text-indigo-600">0</p>
+                </div>
+                <div class="card bg-white rounded-lg shadow-md p-6 border-l-4 border-pink-500">
+                    <h2 class="text-lg font-semibold text-gray-700">Ventas del Día</h2>
+                    <p id="ventas-dia" class="text-3xl font-bold text-pink-600">$0</p>
+                </div>
+                <div class="card bg-white rounded-lg shadow-md p-6 border-l-4 border-emerald-500">
+                    <h2 class="text-lg font-semibold text-gray-700">Valor del Inventario</h2>
+                    <p id="valor-inventario" class="text-3xl font-bold text-emerald-600">$0</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="bg-white rounded-lg shadow-md mb-8">
+                <div class="border-b border-gray-200">
+                    <nav class="flex -mb-px">
+                        <button id="tab-inventario" class="tab-btn text-indigo-600 border-indigo-500 py-4 px-6 border-b-2 font-medium text-sm">
+                            Inventario
+                        </button>
+                        <button id="tab-ventas" class="tab-btn text-gray-500 hover:text-gray-700 py-4 px-6 border-b-2 border-transparent font-medium text-sm">
+                            Ventas
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Inventario Tab Content -->
+                <div id="content-inventario" class="p-6">
+                    <div class="flex justify-between mb-6">
+                        <div class="w-1/3">
+                            <input type="text" id="buscar-producto" placeholder="Buscar producto..." 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <button id="btn-agregar-producto" class="btn-primary text-white px-4 py-2 rounded-md mr-2">
+                                Agregar Producto
+                            </button>
+                            <button id="btn-reporte-inventario" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+                                Reporte PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                                    <th class="py-3 px-6 text-left">Código</th>
+                                    <th class="py-3 px-6 text-left">Producto</th>
+                                    <th class="py-3 px-6 text-left">Categoría</th>
+                                    <th class="py-3 px-6 text-right">Stock</th>
+                                    <th class="py-3 px-6 text-right">Precio Compra</th>
+                                    <th class="py-3 px-6 text-right">Precio Venta</th>
+                                    <th class="py-3 px-6 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-inventario" class="text-gray-600 text-sm">
+                                <!-- Datos de inventario se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Ventas Tab Content -->
+                <div id="content-ventas" class="p-6 hidden">
+                    <div class="flex justify-between mb-6">
+                        <div class="w-1/3">
+                            <input type="date" id="fecha-ventas" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <button id="btn-reporte-ventas" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+                                Reporte Ventas PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                                    <th class="py-3 px-6 text-left">ID Venta</th>
+                                    <th class="py-3 px-6 text-left">Fecha</th>
+                                    <th class="py-3 px-6 text-left">Hora</th>
+                                    <th class="py-3 px-6 text-right">Productos</th>
+                                    <th class="py-3 px-6 text-right">Total</th>
+                                    <th class="py-3 px-6 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-ventas" class="text-gray-600 text-sm">
+                                <!-- Datos de ventas se cargarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <!-- Game Board -->
-        <div id="game-board" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mb-8">
-            <!-- Cards will be generated here -->
-        </div>
-        
-        <!-- Info Panel -->
-        <div class="bg-[#1a1a3a] p-4 rounded-lg border border-[#ffd700] mb-6">
-            <h3 class="text-xl font-bold mb-2">How to Play</h3>
-            <ul class="list-disc pl-5 text-gray-300">
-                <li>Click on cards to flip them</li>
-                <li>Find all 12 pairs of concepts related to Telos</li>
-                <li>When you match correctly, you'll discover information about each concept</li>
-                <li>Answer the reflection questions to deepen your knowledge</li>
-            </ul>
+
+        <!-- Footer -->
+        <footer class="bg-white py-4 shadow-inner">
+            <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+                &copy; 2023 Inversiones Boheme - Sistema de Inventario
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal Agregar/Editar Producto -->
+    <div id="modal-producto" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
+            <div class="border-b px-6 py-4">
+                <h3 id="modal-producto-titulo" class="text-lg font-semibold text-gray-700">Agregar Producto</h3>
+            </div>
+            <div class="p-6">
+                <form id="form-producto">
+                    <input type="hidden" id="producto-id">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="producto-codigo">
+                            Código
+                        </label>
+                        <input type="text" id="producto-codigo" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="producto-nombre">
+                            Nombre del Producto
+                        </label>
+                        <input type="text" id="producto-nombre" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="producto-categoria">
+                            Categoría
+                        </label>
+                        <select id="producto-categoria" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <option value="">Seleccione una categoría</option>
+                            <option value="Víveres">Víveres</option>
+                            <option value="Papelería">Papelería</option>
+                            <option value="Aseo">Aseo</option>
+                            <option value="Bebidas">Bebidas</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="producto-stock">
+                            Stock
+                        </label>
+                        <input type="number" id="producto-stock" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="producto-precio-compra">
+                            Precio de Compra
+                        </label>
+                        <input type="number" id="producto-precio-compra" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="producto-precio-venta">
+                            Precio de Venta
+                        </label>
+                        <input type="number" id="producto-precio-venta" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="flex justify-end pt-4">
+                        <button type="button" class="btn-cerrar-modal bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md mr-2">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-primary text-white px-4 py-2 rounded-md">
+                            Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-    
-    <!-- Match Modal -->
-    <div id="match-modal" class="modal fixed inset-0 flex items-center justify-center z-50 hidden">
-        <div class="modal-overlay absolute inset-0 bg-black opacity-75"></div>
-        <div class="modal-content relative bg-[#1a1a3a] rounded-lg max-w-md w-full mx-4 p-6 border-2 border-[#ffd700] glow">
-            <div class="text-center">
-                <h3 class="text-2xl font-bold text-[#ffd700] mb-2">Excellent!</h3>
-                <p id="match-concept" class="text-xl font-bold mb-2">TLOS - Token</p>
-                <div id="match-info" class="text-gray-200 mb-4">
-                    TLOS is the native token of the Telos blockchain, used for transactions, staking, and governance.
+
+    <!-- Modal Nueva Venta -->
+    <div id="modal-venta" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl mx-4">
+            <div class="border-b px-6 py-4">
+                <h3 class="text-lg font-semibold text-gray-700">Nueva Venta</h3>
+            </div>
+            <div class="p-6">
+                <div class="flex flex-col md:flex-row md:space-x-4 mb-6">
+                    <div class="w-full md:w-2/3 mb-4 md:mb-0">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="venta-buscar-producto">
+                            Buscar Producto
+                        </label>
+                        <input type="text" id="venta-buscar-producto" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Código o nombre del producto">
+                    </div>
+                    <div class="w-full md:w-1/3">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="venta-cantidad">
+                            Cantidad
+                        </label>
+                        <div class="flex">
+                            <input type="number" id="venta-cantidad" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button id="btn-agregar-item" class="btn-success text-white px-4 py-2 rounded-r-md">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-6">
-                    <h4 class="text-lg font-bold text-[#ffd700] mb-2">Reflection Question:</h4>
-                    <p id="reflection-question" class="text-gray-200 italic">What advantages does Telos offer compared to other blockchains?</p>
+
+                <div class="overflow-x-auto mb-6">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                                <th class="py-3 px-6 text-left">Código</th>
+                                <th class="py-3 px-6 text-left">Producto</th>
+                                <th class="py-3 px-6 text-right">Cantidad</th>
+                                <th class="py-3 px-6 text-right">Precio</th>
+                                <th class="py-3 px-6 text-right">Subtotal</th>
+                                <th class="py-3 px-6 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-venta-items" class="text-gray-600 text-sm">
+                            <!-- Items de venta se cargarán aquí -->
+                        </tbody>
+                    </table>
                 </div>
-                <button id="continue-btn" class="btn bg-[#571AFF] hover:bg-[#4515cc] text-white font-bold py-2 px-6 rounded-full border-2 border-[#ffd700]">
-                    Continue
-                </button>
+
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-xl font-bold text-gray-700 mb-4 md:mb-0">
+                        Total: <span id="venta-total" class="text-indigo-600">$0.00</span>
+                    </div>
+                    <div class="flex">
+                        <button type="button" class="btn-cerrar-modal bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md mr-2">
+                            Cancelar
+                        </button>
+                        <button id="btn-finalizar-venta" class="btn-primary text-white px-4 py-2 rounded-md">
+                            Finalizar Venta
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <!-- Victory Modal -->
-    <div id="victory-modal" class="modal fixed inset-0 flex items-center justify-center z-50 hidden">
-        <div class="modal-overlay absolute inset-0 bg-black opacity-75"></div>
-        <div class="modal-content relative bg-[#1a1a3a] rounded-lg max-w-md w-full mx-4 p-6 border-2 border-[#ffd700] glow">
-            <div class="text-center">
-                <svg class="mx-auto w-20 h-20 mb-4" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M50 10L90 30V70L50 90L10 70V30L50 10Z" fill="#571AFF" stroke="#ffd700" stroke-width="2"/>
-                    <path d="M30 50L45 65L70 35" stroke="#ffd700" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <h3 class="text-3xl font-bold text-[#ffd700] mb-2">Congratulations!</h3>
-                <p class="text-xl text-white mb-2">You've completed the game</p>
-                <p id="final-stats" class="text-gray-300 mb-6">You completed the game in <span id="final-attempts">24</span> attempts.</p>
-                <button id="play-again-btn" class="btn bg-[#571AFF] hover:bg-[#4515cc] text-white font-bold py-2 px-6 rounded-full border-2 border-[#ffd700] mr-2">
-                    Play Again
-                </button>
+
+    <!-- Modal Detalle Venta -->
+    <div id="modal-detalle-venta" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-4">
+            <div class="border-b px-6 py-4">
+                <h3 class="text-lg font-semibold text-gray-700">Detalle de Venta</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <p class="text-sm text-gray-600">ID Venta:</p>
+                        <p id="detalle-id" class="font-semibold"></p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Fecha:</p>
+                        <p id="detalle-fecha" class="font-semibold"></p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto mb-6">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                                <th class="py-3 px-6 text-left">Producto</th>
+                                <th class="py-3 px-6 text-right">Cantidad</th>
+                                <th class="py-3 px-6 text-right">Precio</th>
+                                <th class="py-3 px-6 text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-detalle-items" class="text-gray-600 text-sm">
+                            <!-- Detalles de venta se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <div class="text-xl font-bold text-gray-700">
+                        Total: <span id="detalle-total" class="text-indigo-600"></span>
+                    </div>
+                    <button type="button" class="btn-cerrar-modal bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md">
+                        Cerrar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-    
+
     <script>
+        // Inicialización de variables globales
+        let productos = JSON.parse(localStorage.getItem('productos')) || [];
+        let ventas = JSON.parse(localStorage.getItem('ventas')) || [];
+        let ventaActual = { items: [], total: 0 };
+        let productoSeleccionado = null;
+
+        // Función para formatear moneda
+        const formatMoneda = (valor) => {
+            return '$' + parseFloat(valor).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        };
+
+        // Función para formatear fecha
+        const formatFecha = (fecha) => {
+            const f = new Date(fecha);
+            return f.toLocaleDateString('es-ES');
+        };
+
+        // Función para formatear hora
+        const formatHora = (fecha) => {
+            const f = new Date(fecha);
+            return f.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        };
+
+        // Función para generar ID único
+        const generarId = () => {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5).toUpperCase();
+        };
+
+        // Función para actualizar el dashboard
+        const actualizarDashboard = () => {
+            document.getElementById('total-productos').textContent = productos.length;
+            
+            let valorInventario = productos.reduce((total, producto) => {
+                return total + (producto.precioCompra * producto.stock);
+            }, 0);
+            document.getElementById('valor-inventario').textContent = formatMoneda(valorInventario);
+            
+            const hoy = new Date().toISOString().split('T')[0];
+            const ventasHoy = ventas.filter(venta => venta.fecha.split('T')[0] === hoy);
+            const totalVentasHoy = ventasHoy.reduce((total, venta) => total + venta.total, 0);
+            document.getElementById('ventas-dia').textContent = formatMoneda(totalVentasHoy);
+        };
+
+        // Función para cargar la tabla de inventario
+        const cargarInventario = () => {
+            const tabla = document.getElementById('tabla-inventario');
+            const busqueda = document.getElementById('buscar-producto').value.toLowerCase();
+            
+            let html = '';
+            const productosFiltrados = busqueda ? 
+                productos.filter(p => p.codigo.toLowerCase().includes(busqueda) || 
+                                     p.nombre.toLowerCase().includes(busqueda) ||
+                                     p.categoria.toLowerCase().includes(busqueda)) : 
+                productos;
+            
+            if (productosFiltrados.length === 0) {
+                html = `<tr><td colspan="7" class="py-4 px-6 text-center">No hay productos registrados</td></tr>`;
+            } else {
+                productosFiltrados.forEach(producto => {
+                    const stockClass = producto.stock <= 5 ? 'text-red-600 font-bold' : '';
+                    html += `
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            <td class="py-3 px-6">${producto.codigo}</td>
+                            <td class="py-3 px-6">${producto.nombre}</td>
+                            <td class="py-3 px-6">${producto.categoria}</td>
+                            <td class="py-3 px-6 text-right ${stockClass}">${producto.stock}</td>
+                            <td class="py-3 px-6 text-right">${formatMoneda(producto.precioCompra)}</td>
+                            <td class="py-3 px-6 text-right">${formatMoneda(producto.precioVenta)}</td>
+                            <td class="py-3 px-6 text-center">
+                                <button class="btn-editar text-blue-600 hover:text-blue-900 mr-2" data-id="${producto.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button class="btn-eliminar text-red-600 hover:text-red-900" data-id="${producto.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            tabla.innerHTML = html;
+            
+            // Agregar eventos a los botones de editar y eliminar
+            document.querySelectorAll('.btn-editar').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    editarProducto(id);
+                });
+            });
+            
+            document.querySelectorAll('.btn-eliminar').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    eliminarProducto(id);
+                });
+            });
+        };
+
+        // Función para cargar la tabla de ventas
+        const cargarVentas = () => {
+            const tabla = document.getElementById('tabla-ventas');
+            const fechaSeleccionada = document.getElementById('fecha-ventas').value;
+            
+            let ventasFiltradas = ventas;
+            if (fechaSeleccionada) {
+                ventasFiltradas = ventas.filter(venta => venta.fecha.split('T')[0] === fechaSeleccionada);
+            }
+            
+            let html = '';
+            if (ventasFiltradas.length === 0) {
+                html = `<tr><td colspan="6" class="py-4 px-6 text-center">No hay ventas registradas</td></tr>`;
+            } else {
+                ventasFiltradas.forEach(venta => {
+                    html += `
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            <td class="py-3 px-6">${venta.id}</td>
+                            <td class="py-3 px-6">${formatFecha(venta.fecha)}</td>
+                            <td class="py-3 px-6">${formatHora(venta.fecha)}</td>
+                            <td class="py-3 px-6 text-right">${venta.items.reduce((total, item) => total + item.cantidad, 0)}</td>
+                            <td class="py-3 px-6 text-right">${formatMoneda(venta.total)}</td>
+                            <td class="py-3 px-6 text-center">
+                                <button class="btn-ver-venta text-blue-600 hover:text-blue-900" data-id="${venta.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            tabla.innerHTML = html;
+            
+            // Agregar eventos a los botones de ver venta
+            document.querySelectorAll('.btn-ver-venta').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    verDetalleVenta(id);
+                });
+            });
+        };
+
+        // Función para mostrar el modal de agregar/editar producto
+        const mostrarModalProducto = (editar = false) => {
+            const modal = document.getElementById('modal-producto');
+            const titulo = document.getElementById('modal-producto-titulo');
+            
+            titulo.textContent = editar ? 'Editar Producto' : 'Agregar Producto';
+            modal.classList.remove('hidden');
+            
+            if (!editar) {
+                document.getElementById('form-producto').reset();
+                document.getElementById('producto-id').value = '';
+            }
+        };
+
+        // Función para editar un producto
+        const editarProducto = (id) => {
+            const producto = productos.find(p => p.id === id);
+            if (producto) {
+                document.getElementById('producto-id').value = producto.id;
+                document.getElementById('producto-codigo').value = producto.codigo;
+                document.getElementById('producto-nombre').value = producto.nombre;
+                document.getElementById('producto-categoria').value = producto.categoria;
+                document.getElementById('producto-stock').value = producto.stock;
+                document.getElementById('producto-precio-compra').value = producto.precioCompra;
+                document.getElementById('producto-precio-venta').value = producto.precioVenta;
+                
+                mostrarModalProducto(true);
+            }
+        };
+
+        // Función para eliminar un producto
+        const eliminarProducto = (id) => {
+            if (confirm('¿Está seguro de eliminar este producto?')) {
+                productos = productos.filter(p => p.id !== id);
+                localStorage.setItem('productos', JSON.stringify(productos));
+                cargarInventario();
+                actualizarDashboard();
+            }
+        };
+
+        // Función para mostrar el modal de nueva venta
+        const mostrarModalVenta = () => {
+            const modal = document.getElementById('modal-venta');
+            modal.classList.remove('hidden');
+            
+            // Reiniciar la venta actual
+            ventaActual = { items: [], total: 0 };
+            document.getElementById('venta-buscar-producto').value = '';
+            document.getElementById('venta-cantidad').value = 1;
+            document.getElementById('tabla-venta-items').innerHTML = '';
+            document.getElementById('venta-total').textContent = formatMoneda(0);
+        };
+
+        // Función para agregar un item a la venta actual
+        const agregarItemVenta = () => {
+            const busqueda = document.getElementById('venta-buscar-producto').value.trim();
+            const cantidad = parseInt(document.getElementById('venta-cantidad').value);
+            
+            if (!busqueda || cantidad <= 0) {
+                alert('Debe ingresar un producto y una cantidad válida');
+                return;
+            }
+            
+            // Buscar el producto por código o nombre
+            const producto = productos.find(p => 
+                p.codigo.toLowerCase() === busqueda.toLowerCase() || 
+                p.nombre.toLowerCase() === busqueda.toLowerCase()
+            );
+            
+            if (!producto) {
+                alert('Producto no encontrado');
+                return;
+            }
+            
+            if (producto.stock < cantidad) {
+                alert(`Stock insuficiente. Solo hay ${producto.stock} unidades disponibles.`);
+                return;
+            }
+            
+            // Verificar si el producto ya está en la venta
+            const itemExistente = ventaActual.items.find(item => item.productoId === producto.id);
+            
+            if (itemExistente) {
+                if (producto.stock < (itemExistente.cantidad + cantidad)) {
+                    alert(`Stock insuficiente. Solo hay ${producto.stock} unidades disponibles.`);
+                    return;
+                }
+                
+                itemExistente.cantidad += cantidad;
+                itemExistente.subtotal = itemExistente.cantidad * itemExistente.precio;
+            } else {
+                ventaActual.items.push({
+                    productoId: producto.id,
+                    codigo: producto.codigo,
+                    nombre: producto.nombre,
+                    cantidad: cantidad,
+                    precio: producto.precioVenta,
+                    subtotal: cantidad * producto.precioVenta
+                });
+            }
+            
+            // Actualizar el total de la venta
+            ventaActual.total = ventaActual.items.reduce((total, item) => total + item.subtotal, 0);
+            
+            // Actualizar la tabla de items
+            actualizarTablaVenta();
+            
+            // Limpiar campos
+            document.getElementById('venta-buscar-producto').value = '';
+            document.getElementById('venta-cantidad').value = 1;
+            document.getElementById('venta-buscar-producto').focus();
+        };
+
+        // Función para actualizar la tabla de items de la venta
+        const actualizarTablaVenta = () => {
+            const tabla = document.getElementById('tabla-venta-items');
+            let html = '';
+            
+            if (ventaActual.items.length === 0) {
+                html = `<tr><td colspan="6" class="py-4 px-6 text-center">No hay productos agregados</td></tr>`;
+            } else {
+                ventaActual.items.forEach((item, index) => {
+                    html += `
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            <td class="py-3 px-6">${item.codigo}</td>
+                            <td class="py-3 px-6">${item.nombre}</td>
+                            <td class="py-3 px-6 text-right">${item.cantidad}</td>
+                            <td class="py-3 px-6 text-right">${formatMoneda(item.precio)}</td>
+                            <td class="py-3 px-6 text-right">${formatMoneda(item.subtotal)}</td>
+                            <td class="py-3 px-6 text-center">
+                                <button class="btn-eliminar-item text-red-600 hover:text-red-900" data-index="${index}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            tabla.innerHTML = html;
+            document.getElementById('venta-total').textContent = formatMoneda(ventaActual.total);
+            
+            // Agregar eventos a los botones de eliminar item
+            document.querySelectorAll('.btn-eliminar-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.currentTarget.getAttribute('data-index'));
+                    eliminarItemVenta(index);
+                });
+            });
+        };
+
+        // Función para eliminar un item de la venta
+        const eliminarItemVenta = (index) => {
+            ventaActual.items.splice(index, 1);
+            ventaActual.total = ventaActual.items.reduce((total, item) => total + item.subtotal, 0);
+            actualizarTablaVenta();
+        };
+
+        // Función para finalizar la venta
+        const finalizarVenta = () => {
+            if (ventaActual.items.length === 0) {
+                alert('No hay productos en la venta');
+                return;
+            }
+            
+            // Crear la venta
+            const nuevaVenta = {
+                id: generarId(),
+                fecha: new Date().toISOString(),
+                items: ventaActual.items,
+                total: ventaActual.total
+            };
+            
+            // Actualizar el stock de los productos
+            ventaActual.items.forEach(item => {
+                const producto = productos.find(p => p.id === item.productoId);
+                if (producto) {
+                    producto.stock -= item.cantidad;
+                }
+            });
+            
+            // Guardar la venta y actualizar productos
+            ventas.push(nuevaVenta);
+            localStorage.setItem('ventas', JSON.stringify(ventas));
+            localStorage.setItem('productos', JSON.stringify(productos));
+            
+            // Cerrar el modal y actualizar datos
+            document.getElementById('modal-venta').classList.add('hidden');
+            cargarInventario();
+            cargarVentas();
+            actualizarDashboard();
+            
+            alert('Venta realizada con éxito');
+        };
+
+        // Función para ver el detalle de una venta
+        const verDetalleVenta = (id) => {
+            const venta = ventas.find(v => v.id === id);
+            if (venta) {
+                document.getElementById('detalle-id').textContent = venta.id;
+                document.getElementById('detalle-fecha').textContent = `${formatFecha(venta.fecha)} ${formatHora(venta.fecha)}`;
+                
+                const tabla = document.getElementById('tabla-detalle-items');
+                let html = '';
+                
+                venta.items.forEach(item => {
+                    html += `
+                        <tr class="border-b border-gray-200">
+                            <td class="py-3 px-6">${item.nombre}</td>
+                            <td class="py-3 px-6 text-right">${item.cantidad}</td>
+                            <td class="py-3 px-6 text-right">${formatMoneda(item.precio)}</td>
+                            <td class="py-3 px-6 text-right">${formatMoneda(item.subtotal)}</td>
+                        </tr>
+                    `;
+                });
+                
+                tabla.innerHTML = html;
+                document.getElementById('detalle-total').textContent = formatMoneda(venta.total);
+                
+                document.getElementById('modal-detalle-venta').classList.remove('hidden');
+            }
+        };
+
+        // Función para generar reporte de inventario en PDF
+        const generarReporteInventario = () => {
+            // Verificar que jsPDF esté disponible
+            if (typeof window.jspdf === 'undefined') {
+                alert('Error: La biblioteca jsPDF no está cargada correctamente.');
+                return;
+            }
+
+            try {
+                // Crear un nuevo documento PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Título
+                doc.setFontSize(18);
+                doc.text('Inversiones Boheme', 105, 20, { align: 'center' });
+                doc.setFontSize(14);
+                doc.text('Reporte de Inventario', 105, 30, { align: 'center' });
+                doc.setFontSize(10);
+                doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 105, 40, { align: 'center' });
+                
+                // Tabla
+                const headers = [['Código', 'Producto', 'Categoría', 'Stock', 'Precio Compra', 'Precio Venta', 'Valor Total']];
+                const data = productos.map(p => [
+                    p.codigo,
+                    p.nombre,
+                    p.categoria,
+                    p.stock,
+                    formatMoneda(p.precioCompra),
+                    formatMoneda(p.precioVenta),
+                    formatMoneda(p.precioCompra * p.stock)
+                ]);
+                
+                // Agregar totales
+                const totalValor = productos.reduce((total, p) => total + (p.precioCompra * p.stock), 0);
+                data.push(['', '', '', '', '', 'TOTAL:', formatMoneda(totalValor)]);
+                
+                // Generar la tabla
+                doc.autoTable({
+                    head: headers,
+                    body: data,
+                    startY: 50,
+                    theme: 'grid',
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [99, 102, 241] }
+                });
+                
+                // Guardar PDF
+                doc.save('reporte-inventario.pdf');
+            } catch (error) {
+                console.error('Error al generar el PDF:', error);
+                alert('Error al generar el PDF. Por favor, intente nuevamente.');
+            }
+        };
+
+        // Función para generar reporte de ventas en PDF
+        const generarReporteVentas = () => {
+            // Verificar que jsPDF esté disponible
+            if (typeof window.jspdf === 'undefined') {
+                alert('Error: La biblioteca jsPDF no está cargada correctamente.');
+                return;
+            }
+
+            try {
+                // Crear un nuevo documento PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const fechaSeleccionada = document.getElementById('fecha-ventas').value;
+                
+                let ventasFiltradas = ventas;
+                let subtitulo = 'Todas las Ventas';
+                
+                if (fechaSeleccionada) {
+                    ventasFiltradas = ventas.filter(venta => venta.fecha.split('T')[0] === fechaSeleccionada);
+                    subtitulo = `Ventas del ${new Date(fechaSeleccionada).toLocaleDateString('es-ES')}`;
+                }
+                
+                // Título
+                doc.setFontSize(18);
+                doc.text('Inversiones Boheme', 105, 20, { align: 'center' });
+                doc.setFontSize(14);
+                doc.text('Reporte de Ventas', 105, 30, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text(subtitulo, 105, 40, { align: 'center' });
+                doc.setFontSize(10);
+                doc.text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, 105, 50, { align: 'center' });
+                
+                // Tabla
+                const headers = [['ID Venta', 'Fecha', 'Hora', 'Productos', 'Total']];
+                const data = ventasFiltradas.map(v => [
+                    v.id,
+                    formatFecha(v.fecha),
+                    formatHora(v.fecha),
+                    v.items.reduce((total, item) => total + item.cantidad, 0),
+                    formatMoneda(v.total)
+                ]);
+                
+                // Agregar totales
+                const totalVentas = ventasFiltradas.reduce((total, v) => total + v.total, 0);
+                data.push(['', '', '', 'TOTAL:', formatMoneda(totalVentas)]);
+                
+                // Generar la tabla
+                doc.autoTable({
+                    head: headers,
+                    body: data,
+                    startY: 60,
+                    theme: 'grid',
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [99, 102, 241] }
+                });
+                
+                // Guardar PDF
+                doc.save('reporte-ventas.pdf');
+            } catch (error) {
+                console.error('Error al generar el PDF:', error);
+                alert('Error al generar el PDF. Por favor, intente nuevamente.');
+            }
+        };
+
+        // Inicialización de la aplicación
         document.addEventListener('DOMContentLoaded', () => {
-            // Game state
-            let attempts = 0;
-            let matches = 0;
-            let flippedCards = [];
-            let lockBoard = false;
+            // Mostrar fecha actual
+            const fechaActual = new Date();
+            document.getElementById('current-date').textContent = fechaActual.toLocaleDateString('es-ES', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
             
-            // Card data with concepts and explanations
-            const cardData = [
-                {
-                    id: 'tlos',
-                    concept: 'TLOS',
-                    pair: 'token',
-                    info: 'TLOS is the native token of the Telos blockchain, used for transactions, staking, and governance.',
-                    question: 'What functions does the TLOS token serve within the Telos ecosystem?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.8L19.2 9 12 13.2 4.8 9 12 4.8zM4 10.8l7 4.2v5.2l-7-3.5v-5.9zm16 0v5.9l-7 3.5v-5.2l7-4.2z"/></svg>`
-                },
-                {
-                    id: 'token',
-                    concept: 'Token',
-                    pair: 'tlos',
-                    info: 'TLOS is the native token of the Telos blockchain, used for transactions, staking, and governance.',
-                    question: 'What functions does the TLOS token serve within the Telos ecosystem?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/></svg>`
-                },
-                {
-                    id: 'bp',
-                    concept: 'BP',
-                    pair: 'block-producer',
-                    info: 'Block Producers (BPs) are the nodes that validate transactions and produce blocks on the Telos network.',
-                    question: 'How are Block Producers elected in Telos and why is this process important?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H5v-2h7v2zm7-4H5v-2h14v2zm0-4H5V7h14v2z"/></svg>`
-                },
-                {
-                    id: 'block-producer',
-                    concept: 'Block Producer',
-                    pair: 'bp',
-                    info: 'Block Producers (BPs) are the nodes that validate transactions and produce blocks on the Telos network.',
-                    question: 'How are Block Producers elected in Telos and why is this process important?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>`
-                },
-                {
-                    id: 'evm',
-                    concept: 'EVM',
-                    pair: 'ethereum-virtual-machine',
-                    info: 'Telos EVM is an implementation of the Ethereum Virtual Machine that allows Ethereum smart contracts to run on the Telos blockchain.',
-                    question: 'What advantages does Telos EVM offer compared to Ethereum?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M12 1.75l-6.25 10.5L12 16l6.25-3.75L12 1.75zM5.75 13.5L12 22.25l6.25-8.75L12 17.25 5.75 13.5z"/></svg>`
-                },
-                {
-                    id: 'ethereum-virtual-machine',
-                    concept: 'Ethereum Virtual Machine',
-                    pair: 'evm',
-                    info: 'Telos EVM is an implementation of the Ethereum Virtual Machine that allows Ethereum smart contracts to run on the Telos blockchain.',
-                    question: 'What advantages does Telos EVM offer compared to Ethereum?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>`
-                },
-                {
-                    id: 'governance',
-                    concept: 'Governance',
-                    pair: 'voting',
-                    info: 'Telos governance system allows token holders to vote on important network decisions.',
-                    question: 'Why is decentralized governance important in a blockchain?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`
-                },
-                {
-                    id: 'voting',
-                    concept: 'Voting',
-                    pair: 'governance',
-                    info: 'Telos governance system allows token holders to vote on important network decisions.',
-                    question: 'Why is decentralized governance important in a blockchain?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M18 13h-5v5h5v-5zM6 13H1v5h5v-5zm12-7H1v5h17V6z"/></svg>`
-                },
-                {
-                    id: 'dpos',
-                    concept: 'DPoS',
-                    pair: 'delegated-proof-of-stake',
-                    info: 'Delegated Proof of Stake is the consensus mechanism used by Telos, where token holders vote for Block Producers.',
-                    question: 'What are the advantages of DPoS compared to other consensus mechanisms?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M16 13h-3V3h-2v10H8l4 4 4-4zM4 19v2h16v-2H4z"/></svg>`
-                },
-                {
-                    id: 'delegated-proof-of-stake',
-                    concept: 'Delegated Proof of Stake',
-                    pair: 'dpos',
-                    info: 'Delegated Proof of Stake is the consensus mechanism used by Telos, where token holders vote for Block Producers.',
-                    question: 'What are the advantages of DPoS compared to other consensus mechanisms?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`
-                },
-                {
-                    id: 'dapp',
-                    concept: 'dApp',
-                    pair: 'decentralized-application',
-                    info: 'Decentralized applications (dApps) are programs that run on the Telos blockchain, offering transparency and censorship resistance.',
-                    question: 'What types of dApps can be built on Telos?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M17.5 15v-2h1.1l.9 2H21l-1.2-2.6c.7-.4 1.2-1.2 1.2-2.1 0-1.4-1.1-2.5-2.5-2.5h-2.5v7.1h1.5zM19 9c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5h-1.5V9h1.5zM3 11c0 4.4 3.6 8 8 8s8-3.6 8-8h-2c0 3.3-2.7 6-6 6s-6-2.7-6-6 2.7-6 6-6v4l5-5-5-5v4c-4.4 0-8 3.6-8 8z"/></svg>`
-                },
-                {
-                    id: 'decentralized-application',
-                    concept: 'Decentralized Application',
-                    pair: 'dapp',
-                    info: 'Decentralized applications (dApps) are programs that run on the Telos blockchain, offering transparency and censorship resistance.',
-                    question: 'What types of dApps can be built on Telos?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 7h3V9h-2V8h2V7h-3v5zm-4 0h2V8h-3v1h2v1h-2v1h3v-4h-3v1h1v1zm10 5h-6v-2h1.5v-2h-1.5V9h6v2h-3v2h3z"/></svg>`
-                },
-                {
-                    id: 'smart-contract',
-                    concept: 'Smart Contract',
-                    pair: 'self-executing-contract',
-                    info: 'Smart contracts are self-executing programs that run on the Telos blockchain when predetermined conditions are met.',
-                    question: 'How can smart contracts transform traditional industries?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>`
-                },
-                {
-                    id: 'self-executing-contract',
-                    concept: 'Self-Executing Contract',
-                    pair: 'smart-contract',
-                    info: 'Smart contracts are self-executing programs that run on the Telos blockchain when predetermined conditions are met.',
-                    question: 'How can smart contracts transform traditional industries?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>`
-                },
-                {
-                    id: 'nft',
-                    concept: 'NFT',
-                    pair: 'non-fungible-token',
-                    info: 'NFTs (Non-Fungible Tokens) on Telos represent unique digital assets with verifiable ownership on the blockchain.',
-                    question: 'What practical applications do NFTs have beyond digital art?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/></svg>`
-                },
-                {
-                    id: 'non-fungible-token',
-                    concept: 'Non-Fungible Token',
-                    pair: 'nft',
-                    info: 'NFTs (Non-Fungible Tokens) on Telos represent unique digital assets with verifiable ownership on the blockchain.',
-                    question: 'What practical applications do NFTs have beyond digital art?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`
-                },
-                {
-                    id: 'staking',
-                    concept: 'Staking',
-                    pair: 'token-locking',
-                    info: 'Staking on Telos involves locking TLOS tokens to earn rewards and participate in network governance.',
-                    question: 'What are the benefits of staking your TLOS tokens?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-9-1c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-6v11c0 1.1-.9 2-2 2H4v-2h17V7h2z"/></svg>`
-                },
-                {
-                    id: 'token-locking',
-                    concept: 'Token Locking',
-                    pair: 'staking',
-                    info: 'Staking on Telos involves locking TLOS tokens to earn rewards and participate in network governance.',
-                    question: 'What are the benefits of staking your TLOS tokens?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>`
-                },
-                {
-                    id: 'wallet',
-                    concept: 'Wallet',
-                    pair: 'digital-wallet',
-                    info: 'Telos wallets are applications that allow you to store, send, and receive TLOS tokens and other assets on the Telos network.',
-                    question: 'What security measures should you take to protect your Telos wallet?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`
-                },
-                {
-                    id: 'digital-wallet',
-                    concept: 'Digital Wallet',
-                    pair: 'wallet',
-                    info: 'Telos wallets are applications that allow you to store, send, and receive TLOS tokens and other assets on the Telos network.',
-                    question: 'What security measures should you take to protect your Telos wallet?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>`
-                },
-                {
-                    id: 'defi',
-                    concept: 'DeFi',
-                    pair: 'decentralized-finance',
-                    info: 'Decentralized Finance (DeFi) on Telos enables financial services without intermediaries, such as lending and trading.',
-                    question: 'How can DeFi on Telos improve global financial inclusion?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>`
-                },
-                {
-                    id: 'decentralized-finance',
-                    concept: 'Decentralized Finance',
-                    pair: 'defi',
-                    info: 'Decentralized Finance (DeFi) on Telos enables financial services without intermediaries, such as lending and trading.',
-                    question: 'How can DeFi on Telos improve global financial inclusion?',
-                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="card-icon"><path fill="#571AFF" d="M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5z"/></svg>`
+            // Inicializar fecha en el filtro de ventas
+            document.getElementById('fecha-ventas').valueAsDate = fechaActual;
+            
+            // Cargar datos iniciales
+            cargarInventario();
+            cargarVentas();
+            actualizarDashboard();
+            
+            // Eventos de los tabs
+            document.getElementById('tab-inventario').addEventListener('click', () => {
+                document.getElementById('tab-inventario').classList.add('text-indigo-600', 'border-indigo-500');
+                document.getElementById('tab-inventario').classList.remove('text-gray-500', 'border-transparent');
+                document.getElementById('tab-ventas').classList.add('text-gray-500', 'border-transparent');
+                document.getElementById('tab-ventas').classList.remove('text-indigo-600', 'border-indigo-500');
+                
+                document.getElementById('content-inventario').classList.remove('hidden');
+                document.getElementById('content-ventas').classList.add('hidden');
+            });
+            
+            document.getElementById('tab-ventas').addEventListener('click', () => {
+                document.getElementById('tab-ventas').classList.add('text-indigo-600', 'border-indigo-500');
+                document.getElementById('tab-ventas').classList.remove('text-gray-500', 'border-transparent');
+                document.getElementById('tab-inventario').classList.add('text-gray-500', 'border-transparent');
+                document.getElementById('tab-inventario').classList.remove('text-indigo-600', 'border-indigo-500');
+                
+                document.getElementById('content-ventas').classList.remove('hidden');
+                document.getElementById('content-inventario').classList.add('hidden');
+            });
+            
+            // Evento de búsqueda de productos
+            document.getElementById('buscar-producto').addEventListener('input', cargarInventario);
+            
+            // Evento de filtro de ventas por fecha
+            document.getElementById('fecha-ventas').addEventListener('change', cargarVentas);
+            
+            // Evento para agregar/editar producto
+            document.getElementById('btn-agregar-producto').addEventListener('click', () => mostrarModalProducto());
+            
+            document.getElementById('form-producto').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const id = document.getElementById('producto-id').value || generarId();
+                const producto = {
+                    id: id,
+                    codigo: document.getElementById('producto-codigo').value,
+                    nombre: document.getElementById('producto-nombre').value,
+                    categoria: document.getElementById('producto-categoria').value,
+                    stock: parseInt(document.getElementById('producto-stock').value),
+                    precioCompra: parseFloat(document.getElementById('producto-precio-compra').value),
+                    precioVenta: parseFloat(document.getElementById('producto-precio-venta').value)
+                };
+                
+                // Verificar si es edición o nuevo
+                const index = productos.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    productos[index] = producto;
+                } else {
+                    productos.push(producto);
                 }
-            ];
+                
+                localStorage.setItem('productos', JSON.stringify(productos));
+                document.getElementById('modal-producto').classList.add('hidden');
+                cargarInventario();
+                actualizarDashboard();
+            });
             
-            // DOM elements
-            const gameBoard = document.getElementById('game-board');
-            const attemptsCounter = document.getElementById('attempts');
-            const matchesCounter = document.getElementById('matches');
-            const totalPairsDisplay = document.getElementById('total-pairs');
-            const matchModal = document.getElementById('match-modal');
-            const matchConcept = document.getElementById('match-concept');
-            const matchInfo = document.getElementById('match-info');
-            const reflectionQuestion = document.getElementById('reflection-question');
-            const continueBtn = document.getElementById('continue-btn');
-            const victoryModal = document.getElementById('victory-modal');
-            const finalAttempts = document.getElementById('final-attempts');
-            const playAgainBtn = document.getElementById('play-again-btn');
-            const restartBtn = document.getElementById('restart-btn');
+            // Evento para nueva venta
+            document.getElementById('btn-nueva-venta').addEventListener('click', mostrarModalVenta);
             
-            // Initialize game
-            function initGame() {
-                attempts = 0;
-                matches = 0;
-                flippedCards = [];
-                lockBoard = false;
-                
-                // Update counters
-                attemptsCounter.textContent = attempts;
-                matchesCounter.textContent = matches;
-                totalPairsDisplay.textContent = cardData.length / 2;
-                
-                // Clear game board
-                gameBoard.innerHTML = '';
-                
-                // Create and shuffle cards
-                const shuffledCards = [...cardData].sort(() => Math.random() - 0.5);
-                
-                // Create card elements
-                shuffledCards.forEach(card => {
-                    const cardElement = createCard(card);
-                    gameBoard.appendChild(cardElement);
+            // Evento para agregar item a la venta
+            document.getElementById('btn-agregar-item').addEventListener('click', agregarItemVenta);
+            
+            // Evento para finalizar venta
+            document.getElementById('btn-finalizar-venta').addEventListener('click', finalizarVenta);
+            
+            // Eventos para generar reportes
+            document.getElementById('btn-reporte-inventario').addEventListener('click', generarReporteInventario);
+            document.getElementById('btn-reporte-ventas').addEventListener('click', generarReporteVentas);
+            
+            // Eventos para cerrar modales
+            document.querySelectorAll('.btn-cerrar-modal').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.classList.add('hidden');
+                    });
                 });
-            }
+            });
             
-            // Create a card element
-            function createCard(cardData) {
-                const card = document.createElement('div');
-                card.className = 'card relative h-28 cursor-pointer';
-                card.dataset.id = cardData.id;
-                card.dataset.pair = cardData.pair;
-                
-                const cardInner = document.createElement('div');
-                cardInner.className = 'card-inner w-full h-full';
-                
-                const cardFront = document.createElement('div');
-                cardFront.className = 'card-front rounded-lg flex items-center justify-center';
-                
-                // Telos logo on card front
-                cardFront.innerHTML = `
-                    <svg class="w-10 h-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M50 10L90 30V70L50 90L10 70V30L50 10Z" fill="#571AFF" stroke="#ffd700" stroke-width="2"/>
-                        <path d="M30 40H70M30 50H70M30 60H70" stroke="#ffd700" stroke-width="2"/>
-                    </svg>
-                `;
-                
-                const cardBack = document.createElement('div');
-                cardBack.className = 'card-back rounded-lg';
-                cardBack.innerHTML = `
-                    ${cardData.icon}
-                    <span class="font-bold text-xs sm:text-sm">${cardData.concept}</span>
-                `;
-                
-                cardInner.appendChild(cardFront);
-                cardInner.appendChild(cardBack);
-                card.appendChild(cardInner);
-                
-                // Add click event
-                card.addEventListener('click', flipCard);
-                
-                return card;
-            }
-            
-            // Flip card function
-            function flipCard() {
-                if (lockBoard) return;
-                if (this.classList.contains('flipped')) return;
-                
-                this.classList.add('flipped');
-                flippedCards.push(this);
-                
-                if (flippedCards.length === 2) {
-                    lockBoard = true;
-                    attempts++;
-                    attemptsCounter.textContent = attempts;
-                    
-                    // Check for match
-                    const isMatch = flippedCards[0].dataset.pair === flippedCards[1].dataset.id &&
-                                   flippedCards[1].dataset.pair === flippedCards[0].dataset.id;
-                    
-                    if (isMatch) {
-                        handleMatch();
-                    } else {
-                        setTimeout(unflipCards, 1000);
+            // Agregar algunos productos de ejemplo si no hay ninguno
+            if (productos.length === 0) {
+                const productosEjemplo = [
+                    {
+                        id: generarId(),
+                        codigo: 'P001',
+                        nombre: 'Cuaderno Rayado',
+                        categoria: 'Papelería',
+                        stock: 50,
+                        precioCompra: 1.50,
+                        precioVenta: 2.50
+                    },
+                    {
+                        id: generarId(),
+                        codigo: 'P002',
+                        nombre: 'Lápiz HB',
+                        categoria: 'Papelería',
+                        stock: 100,
+                        precioCompra: 0.30,
+                        precioVenta: 0.75
+                    },
+                    {
+                        id: generarId(),
+                        codigo: 'V001',
+                        nombre: 'Arroz 1Kg',
+                        categoria: 'Víveres',
+                        stock: 30,
+                        precioCompra: 1.20,
+                        precioVenta: 1.80
+                    },
+                    {
+                        id: generarId(),
+                        codigo: 'V002',
+                        nombre: 'Aceite 1L',
+                        categoria: 'Víveres',
+                        stock: 25,
+                        precioCompra: 2.50,
+                        precioVenta: 3.50
+                    },
+                    {
+                        id: generarId(),
+                        codigo: 'A001',
+                        nombre: 'Detergente 500g',
+                        categoria: 'Aseo',
+                        stock: 20,
+                        precioCompra: 1.80,
+                        precioVenta: 2.50
                     }
-                }
+                ];
+                
+                productos = productosEjemplo;
+                localStorage.setItem('productos', JSON.stringify(productos));
+                cargarInventario();
+                actualizarDashboard();
             }
-            
-            // Handle matched cards
-            function handleMatch() {
-                matches++;
-                matchesCounter.textContent = matches;
-                
-                // Find the card data for the matched pair
-                const cardId = flippedCards[0].dataset.id;
-                const matchedCard = cardData.find(card => card.id === cardId);
-                
-                // Disable click on matched cards
-                flippedCards.forEach(card => {
-                    card.removeEventListener('click', flipCard);
-                    card.classList.add('matched');
-                });
-                
-                // Reset flipped cards array
-                flippedCards = [];
-                lockBoard = false;
-                
-                // Show match modal with info
-                matchConcept.textContent = `${matchedCard.concept} - ${cardData.find(card => card.id === matchedCard.pair).concept}`;
-                matchInfo.textContent = matchedCard.info;
-                reflectionQuestion.textContent = matchedCard.question;
-                
-                setTimeout(() => {
-                    matchModal.classList.remove('hidden');
-                    createConfetti();
-                }, 500);
-                
-                // Check for victory
-                if (matches === cardData.length / 2) {
-                    setTimeout(showVictoryModal, 1500);
-                }
-            }
-            
-            // Unflip cards
-            function unflipCards() {
-                flippedCards.forEach(card => {
-                    card.classList.remove('flipped');
-                });
-                
-                flippedCards = [];
-                lockBoard = false;
-            }
-            
-            // Show victory modal
-            function showVictoryModal() {
-                finalAttempts.textContent = attempts;
-                victoryModal.classList.remove('hidden');
-                createConfetti(100);
-            }
-            
-            // Create confetti effect
-            function createConfetti(count = 30) {
-                const colors = ['#571AFF', '#ffd700', '#ffffff', '#7248ff'];
-                
-                for (let i = 0; i < count; i++) {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    confetti.style.left = Math.random() * 100 + 'vw';
-                    confetti.style.top = -10 + 'px';
-                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                    confetti.style.width = Math.random() * 10 + 5 + 'px';
-                    confetti.style.height = Math.random() * 10 + 5 + 'px';
-                    confetti.style.opacity = 1;
-                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-                    
-                    document.body.appendChild(confetti);
-                    
-                    const animationDuration = Math.random() * 3 + 2;
-                    const animationDelay = Math.random() * 2;
-                    
-                    confetti.animate([
-                        { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
-                        { transform: `translateY(${window.innerHeight}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }
-                    ], {
-                        duration: animationDuration * 1000,
-                        delay: animationDelay * 1000,
-                        easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)'
-                    }).onfinish = () => {
-                        confetti.remove();
-                    };
-                }
-            }
-            
-            // Event listeners
-            continueBtn.addEventListener('click', () => {
-                matchModal.classList.add('hidden');
-            });
-            
-            playAgainBtn.addEventListener('click', () => {
-                victoryModal.classList.add('hidden');
-                initGame();
-            });
-            
-            restartBtn.addEventListener('click', () => {
-                initGame();
-            });
-            
-            // Initialize the game
-            initGame();
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'964454cca372a407',t:'MTc1MzM2OTY4OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'966ff280045f8b1f',t:'MTc1MzgyNzAzNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
